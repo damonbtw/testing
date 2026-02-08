@@ -20,7 +20,7 @@ local Tab = Window:AddTab("Chest ESP")
 local MainBox = Tab:AddMiddleGroupbox("Settings")
 
 local espEnabled = MainBox:AddToggle({Text = "ESP Enabled", Default = true})
-local showFake = MainBox:AddToggle({Text = "Show Fake Chests", Default = false})
+local showFake = MainBox:AddToggle({Text = "Show Fake Chests", Default = true}) -- Changed to true to see ALL chests
 local showDist = MainBox:AddToggle({Text = "Show Distance", Default = true})
 local showTracers = MainBox:AddToggle({Text = "Show Tracers", Default = true})
 
@@ -53,11 +53,33 @@ end
 
 function IsFolder(obj)
     if not obj then return false end
-    -- Check if it has children but no position (characteristic of a Folder)
-    local children = dx9.GetChildren(obj)
-    local position = dx9.GetPosition(obj)
-    -- Folders have children but no position
-    return children ~= nil and #children > 0 and position == nil
+    
+    -- Method 1: Try getting ClassName
+    local success1, className = pcall(function()
+        return obj.ClassName
+    end)
+    if success1 and className == "Folder" then
+        return true
+    end
+    
+    -- Method 2: Check if it has children but no position
+    local success2, children = pcall(function()
+        return dx9.GetChildren(obj)
+    end)
+    
+    local success3, position = pcall(function()
+        return dx9.GetPosition(obj)
+    end)
+    
+    if success2 and children and #children > 0 and (not success3 or not position) then
+        return true
+    end
+    
+    -- Method 3: Try to check if GetChildren works but GetPosition doesn't
+    local hasChildren = dx9.GetChildren(obj) ~= nil
+    local hasPosition = dx9.GetPosition(obj) ~= nil
+    
+    return hasChildren and not hasPosition
 end
 
 function DrawChestESP(hitbox, isReal)
