@@ -136,26 +136,6 @@ function DrawChestESP(chest, isReal)
         local screenH = dx9.size().height
         dx9.DrawLine({screenW / 2, screenH}, {screenPos.x, screenPos.y}, color)
     end
-end}, label)
-            end
-        end
-    end
-    
-    dx9.DrawString({screenPos.x - labelWidth/2, screenPos.y}, color, label)
-    
-    -- Draw distance
-    if showDistance.Value then
-        local distText = tostring(dist) .. " studs"
-        local distWidth = dx9.CalcTextWidth(distText)
-        dx9.DrawString({screenPos.x - distWidth/2, screenPos.y + 15}, color, distText)
-    end
-    
-    -- Draw tracer for real chests
-    if isReal then
-        local screenW = dx9.size().width
-        local screenH = dx9.size().height
-        dx9.DrawLine({screenW / 2, screenH}, {screenPos.x, screenPos.y}, color)
-    end
 end
 
 --// Scan for chests in ReplicatedStorage
@@ -198,6 +178,33 @@ end
 
 --// Main ESP Loop
 coroutine.wrap(function()
+    -- Wait a bit for everything to load
+    dx9.Sleep(2000)
+    
+    -- Debug: Check if we can find the path
+    if ReplicatedStorage then
+        Lib:Notify("ReplicatedStorage found!", 2, {100, 255, 100})
+        
+        local archemaraStorage = dx9.FindFirstChild(ReplicatedStorage, "ArchemaraReplicatedStorage")
+        if archemaraStorage then
+            Lib:Notify("ArchemaraReplicatedStorage found!", 2, {100, 255, 100})
+            
+            local storedRooms = dx9.FindFirstChild(archemaraStorage, "StoredRooms")
+            if storedRooms then
+                local roomsList = dx9.GetChildren(storedRooms)
+                if roomsList then
+                    Lib:Notify("Found " .. #roomsList .. " rooms!", 2, {100, 255, 100})
+                end
+            else
+                Lib:Notify("StoredRooms not found!", 3, {255, 100, 100})
+            end
+        else
+            Lib:Notify("ArchemaraReplicatedStorage not found!", 3, {255, 100, 100})
+        end
+    else
+        Lib:Notify("ReplicatedStorage not found!", 3, {255, 100, 100})
+    end
+    
     while true do
         if espEnabled.Value then
             pcall(ScanForChests)
