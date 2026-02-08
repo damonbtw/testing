@@ -1,27 +1,140 @@
 dx9.ShowConsole(false)
 
-print("Script starting...")
-
---// Load the DXLib UI library
-local success, Lib = pcall(function()
-    return loadstring(dx9.Get("https://raw.githubusercontent.com/damonbtw/WHATISASKID/refs/heads/main/skiddingwhattt.lua"))()
-end)
-
-if not success then
-    print("Failed to load library!")
-    return
-end
-
-print("Library loaded!")
+--// Load library
+local Lib = loadstring(dx9.Get("https://raw.githubusercontent.com/damonbtw/WHATISASKID/refs/heads/main/skiddingwhattt.lua"))()
 
 --// Create Window
 local Window = Lib:CreateWindow({
-    Title = "Chest ESP Test",
-    Size = {400, 300},
+    Title = "Chest ESP - @crossmyheart0551",
+    Size = {500, 350},
     Resizable = false,
-    ToggleKey = "[F5]"
+    ToggleKey = "[F5]",
+    MainColor = {15, 15, 18},
+    BackgroundColor = {10, 10, 12},
+    AccentColor = {255, 215, 0},
+    OutlineColor = {40, 20, 25},
+    FontColor = {240, 240, 245}
 })
 
-print("Window created!")
+local Tab = Window:AddTab("Chest ESP")
+local MainBox = Tab:AddMiddleGroupbox("Settings")
 
-Lib:Notify("ESP Loaded!", 3)
+local espEnabled = MainBox:AddToggle({Text = "ESP Enabled", Default = true})
+local showFake = MainBox:AddToggle({Text = "Show Fake Chests", Default = false})
+local showDist = MainBox:AddToggle({Text = "Show Distance", Default = true})
+
+MainBox:AddBlank(5)
+
+local realColor = MainBox:AddColorPicker({Text = "Real Chest", Default = {255, 215, 0}})
+local fakeColor = MainBox:AddColorPicker({Text = "Fake Chest", Default = {255, 50, 50}})
+
+MainBox:AddBlank(5)
+
+local distSlider = MainBox:AddSlider({
+    Text = "Max Distance",
+    Min = 100,
+    Max = 10000,
+    Default = 5000,
+    Rounding = 0
+})
+
+--// Get services
+local dm = dx9.GetDatamodel()
+local RS = dx9.FindFirstChild(dm, "ReplicatedStorage")
+
+--// Functions
+function GetDist(pos)
+    local lp = dx9.get_localplayer()
+    if not lp then return 99999 end
+    local p = lp.Position
+    return math.floor(math.sqrt((p.x-pos.x)^2 + (p.y-pos.y)^2 + (p.z-pos.z)^2))
+end
+
+function IsFolder(obj)
+    -- Simple check: try to get children and position
+    local hasKids = dx9.GetChildren(obj) ~= nil
+    local hasPos = dx9.GetPosition(obj) ~= nil
+    -- Folders have children but no position
+    return hasKids and not hasPos
+end
+
+function DrawChest(chest, isReal)
+    local hb = dx9.FindFirstChild(chest, "HitBox")
+    if not hb then return end
+    
+    local pos = dx9.GetPosition(hb)
+    if not pos then return end
+    
+    local dist = GetDist(pos)
+    if dist > distSlider.Value then return end
+    if not isReal and not showFake.Value then return end
+    
+    local col = isReal and realColor.Value or fakeColor.Value
+    local sp = dx9.WorldToScreen({pos.x, pos.y+2, pos.z})
+    if not sp or sp.x <= 0 or sp.y <= 0 then return end
+    
+    local txt = isReal and "REAL" or "FAKE"
+    local w = dx9.CalcTextWidth(txt)
+    
+    -- Outline
+    for x=-2,2 do
+        for y=-2,2 do
+            if x~=0 or y~=0 then
+                dx9.DrawString({sp.x-w/2+x, sp.y+y}, {0,0,0}, txt)
+            end
+        end
+    end
+    
+    dx9.DrawString({sp.x-w/2, sp.y}, col, txt)
+    
+    if showDist.Value then
+        local dt = tostring(dist).." m"
+        local dw = dx9.CalcTextWidth(dt)
+        dx9.DrawString({sp.x-dw/2, sp.y+15}, col, dt)
+    end
+    
+    if isReal then
+        local sw, sh = dx9.size().width, dx9.size().height
+        dx9.DrawLine({sw/2, sh}, {sp.x, sp.y}, col)
+    end
+end
+
+function Scan()
+    if not RS then return end
+    
+    local arch = dx9.FindFirstChild(RS, "ArchemaraReplicatedStorage")
+    if not arch then return end
+    
+    local rooms = dx9.FindFirstChild(arch, "StoredRooms")
+    if not rooms then return end
+    
+    local rlist = dx9.GetChildren(rooms)
+    if not rlist then return end
+    
+    for _, room in ipairs(rlist) do
+        local props = dx9.FindFirstChild(room, "Props")
+        if props then
+            local chests = dx9.FindFirstChild(props, "Chests")
+            if chests then
+                local clist = dx9.GetChildren(chests)
+                if clist then
+                    for _, chest in ipairs(clist) do
+                        pcall(DrawChest, chest, IsFolder(chest))
+                    end
+                end
+            end
+        end
+    end
+end
+
+--// Main loop
+coroutine.wrap(function()
+    while true do
+        if espEnabled.Value then
+            pcall(Scan)
+        end
+        dx9.Sleep(0)
+    end
+end)()
+
+Lib:Notify("Chest ESP Loaded!", 3)
