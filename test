@@ -1,10 +1,11 @@
 dx9.ShowConsole(false)
 
---// Real Chest ESP - @crossmyheart0551 👑
-local Lib = loadstring(dx9.Get("https://raw.githubusercontent.com/soupg/DXLibUI/main/main.lua"))()
+--// Load the DXLib UI library
+local Lib = loadstring(dx9.Get("https://raw.githubusercontent.com/damonbtw/WHATISASKID/refs/heads/main/skiddingwhattt.lua"))()
 
+--// Create Window
 local Window = Lib:CreateWindow({
-    Title = "Real Chest ESP - @crossmyheart0551 👑",
+    Title = "Chest ESP - @crossmyheart0551 👑",
     Size = {500, 350},
     Resizable = false,
     ToggleKey = "[F5]",
@@ -40,12 +41,12 @@ MainBox:AddBlank(5)
 --// Color Pickers
 local realChestColor = MainBox:AddColorPicker({
     Text = "Real Chest Color",
-    Default = {255, 215, 0} -- Gold
+    Default = {255, 215, 0}
 })
 
 local fakeChestColor = MainBox:AddColorPicker({
     Text = "Fake Chest Color",
-    Default = {255, 50, 50} -- Red
+    Default = {255, 50, 50}
 })
 
 MainBox:AddBlank(5)
@@ -64,17 +65,18 @@ MainBox:AddBlank(5)
 MainBox:AddBorder()
 MainBox:AddBlank(3)
 MainBox:AddLabel("Real chests = Folder type", {160, 160, 170})
-MainBox:AddLabel("Fake chests = Non-folder type", {160, 160, 170})
+MainBox:AddLabel("Fake chests = Non-folder", {160, 160, 170})
 
---// Get ReplicatedStorage
-local ReplicatedStorage = dx9.FindFirstChild(dx9.GetDatamodel(), "ReplicatedStorage")
+--// Get services
+local datamodel = dx9.GetDatamodel()
+local ReplicatedStorage = dx9.FindFirstChild(datamodel, "ReplicatedStorage")
 
 --// Distance function
 function GetDistanceFromPlayer(v)
     local lp = dx9.get_localplayer()
     if not lp then return 99999 end
     local v1 = lp.Position
-    local a = (v1.x - v.x) ^ 2 + (v1.y - v.y) ^ 2 + (v1.z - v.z) ^ 2
+    local a = (v1.x - v.x)^2 + (v1.y - v.y)^2 + (v1.z - v.z)^2
     return math.floor(math.sqrt(a) + 0.5)
 end
 
@@ -86,33 +88,26 @@ end
 
 --// Draw ESP for chest
 function DrawChestESP(chest, isReal)
-    -- Look for HitBox part
     local hitbox = dx9.FindFirstChild(chest, "HitBox")
-    
     if not hitbox then return end
     
     local position = dx9.GetPosition(hitbox)
     if not position then return end
     
-    -- Check distance
     local dist = GetDistanceFromPlayer(position)
     if dist > distSlider.Value then return end
     
-    -- Skip fake chests if disabled
     if not isReal and not showFakeChests.Value then return end
     
-    -- Get color
     local color = isReal and realChestColor.Value or fakeChestColor.Value
     
-    -- Calculate screen position
     local screenPos = dx9.WorldToScreen({position.x, position.y + 2, position.z})
     if not screenPos or screenPos.x <= 0 or screenPos.y <= 0 then return end
     
-    -- Draw chest label
     local label = isReal and "✓ REAL CHEST" or "✗ FAKE CHEST"
     local labelWidth = dx9.CalcTextWidth(label)
     
-    -- Black outline for visibility
+    -- Black outline
     for dx = -2, 2, 1 do
         for dy = -2, 2, 1 do
             if dx ~= 0 or dy ~= 0 then
@@ -123,14 +118,12 @@ function DrawChestESP(chest, isReal)
     
     dx9.DrawString({screenPos.x - labelWidth/2, screenPos.y}, color, label)
     
-    -- Draw distance
     if showDistance.Value then
         local distText = tostring(dist) .. " studs"
         local distWidth = dx9.CalcTextWidth(distText)
         dx9.DrawString({screenPos.x - distWidth/2, screenPos.y + 15}, color, distText)
     end
     
-    -- Draw tracer for real chests
     if isReal then
         local screenW = dx9.size().width
         local screenH = dx9.size().height
@@ -138,11 +131,10 @@ function DrawChestESP(chest, isReal)
     end
 end
 
---// Scan for chests in ReplicatedStorage
+--// Scan for chests
 function ScanForChests()
     if not ReplicatedStorage then return end
     
-    -- Navigate: ReplicatedStorage > ArchemaraReplicatedStorage > StoredRooms
     local archemaraStorage = dx9.FindFirstChild(ReplicatedStorage, "ArchemaraReplicatedStorage")
     if not archemaraStorage then return end
     
@@ -152,22 +144,15 @@ function ScanForChests()
     local roomsList = dx9.GetChildren(storedRooms)
     if not roomsList then return end
     
-    -- Loop through all rooms (Room1_1, Room2_6, etc.)
     for _, room in ipairs(roomsList) do
-        -- Get Props folder
         local props = dx9.FindFirstChild(room, "Props")
         if props then
-            -- Get Chests folder
             local chestsFolder = dx9.FindFirstChild(props, "Chests")
             if chestsFolder then
-                -- Loop through all chests inside
                 local chestsList = dx9.GetChildren(chestsFolder)
                 if chestsList then
                     for _, chest in ipairs(chestsList) do
-                        -- Check if this chest is a Folder (real) or not (fake)
                         local isRealChest = IsFolder(chest)
-                        
-                        -- Draw ESP for this chest
                         pcall(DrawChestESP, chest, isRealChest)
                     end
                 end
@@ -176,40 +161,12 @@ function ScanForChests()
     end
 end
 
---// Main ESP Loop
+--// Main loop
 coroutine.wrap(function()
-    -- Wait a bit for everything to load
-    dx9.Sleep(2000)
-    
-    -- Debug: Check if we can find the path
-    if ReplicatedStorage then
-        Lib:Notify("ReplicatedStorage found!", 2, {100, 255, 100})
-        
-        local archemaraStorage = dx9.FindFirstChild(ReplicatedStorage, "ArchemaraReplicatedStorage")
-        if archemaraStorage then
-            Lib:Notify("ArchemaraReplicatedStorage found!", 2, {100, 255, 100})
-            
-            local storedRooms = dx9.FindFirstChild(archemaraStorage, "StoredRooms")
-            if storedRooms then
-                local roomsList = dx9.GetChildren(storedRooms)
-                if roomsList then
-                    Lib:Notify("Found " .. #roomsList .. " rooms!", 2, {100, 255, 100})
-                end
-            else
-                Lib:Notify("StoredRooms not found!", 3, {255, 100, 100})
-            end
-        else
-            Lib:Notify("ArchemaraReplicatedStorage not found!", 3, {255, 100, 100})
-        end
-    else
-        Lib:Notify("ReplicatedStorage not found!", 3, {255, 100, 100})
-    end
-    
     while true do
         if espEnabled.Value then
             pcall(ScanForChests)
         end
-        
         dx9.Sleep(0)
     end
 end)()
