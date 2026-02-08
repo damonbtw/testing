@@ -60,12 +60,10 @@ function IsFolder(obj)
     return children ~= nil and #children > 0 and position == nil
 end
 
-function DrawChest(chest, isReal)
-    -- Look for HitBox
-    local hb = dx9.FindFirstChild(chest, "HitBox")
-    if not hb then return end
+function DrawChestESP(hitbox, isReal)
+    if not hitbox then return end
     
-    local pos = dx9.GetPosition(hb)
+    local pos = dx9.GetPosition(hitbox)
     if not pos then return end
     
     -- Calculate distance
@@ -142,16 +140,18 @@ function ScanChests()
         -- > Props
         local props = dx9.FindFirstChild(room, "Props")
         if props then
-            -- > Chests
-            local chestsContainer = dx9.FindFirstChild(props, "Chests")
-            if chestsContainer then
-                -- Get all chests
-                local chests = dx9.GetChildren(chestsContainer)
-                if chests then
-                    for _, chest in ipairs(chests) do
-                        -- Check if it's a folder (real) or not (fake)
-                        local isReal = IsFolder(chest)
-                        pcall(DrawChest, chest, isReal)
+            -- > Chests (this is the one we check if it's a Folder)
+            local chestsObj = dx9.FindFirstChild(props, "Chests")
+            if chestsObj then
+                -- Check if "Chests" is a Folder (real) or not (fake)
+                local isReal = IsFolder(chestsObj)
+                
+                -- > StandardChest > HitBox
+                local standardChest = dx9.FindFirstChild(chestsObj, "StandardChest")
+                if standardChest then
+                    local hitbox = dx9.FindFirstChild(standardChest, "HitBox")
+                    if hitbox then
+                        pcall(DrawChestESP, hitbox, isReal)
                     end
                 end
             end
